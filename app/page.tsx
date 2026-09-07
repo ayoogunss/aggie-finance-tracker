@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 export default function Home() {
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
       <header className="bg-[#500000] px-6 py-5 text-white shadow-md">
@@ -60,18 +64,30 @@ export default function Home() {
         </div>
 
         <section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold">Recent Expenses</h3>
+  <div className="flex items-center justify-between">
+    <h3 className="text-xl font-bold">Recent Expenses</h3>
 
-            <button className="rounded-lg bg-[#500000] px-4 py-2 font-medium text-white hover:bg-[#700000]">
-              Add Expense
-            </button>
-          </div>
+    <button
+  type="button"
+  onClick={() => {
+    setShowExpenseForm((currentValue) => !currentValue);
+  }}
+  className="cursor-pointer rounded-lg bg-[#500000] px-4 py-2 font-medium text-white hover:bg-[#700000]"
+>
+  {showExpenseForm ? "Cancel" : "Add Expense"}
+</button>
+  </div>
 
-          <p className="mt-6 text-gray-500">
-            Your recorded expenses will appear here.
-          </p>
-        </section>
+  {showExpenseForm && (
+    <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+      <p className="font-medium">Expense form will go here.</p>
+    </div>
+  )}
+
+  <p className="mt-6 text-gray-500">
+    Your recorded expenses will appear here.
+  </p>
+</section>
       </section>
     </main>
   );
