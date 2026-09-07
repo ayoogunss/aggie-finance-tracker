@@ -35,6 +35,20 @@ export default function Home() {
     setShowExpenseForm(false);
   }
 
+  const monthlyBudget = 1200;
+
+const totalExpenses = expenses.reduce(
+  (total, expense) => total + expense.amount,
+  0
+);
+
+const remainingBalance = monthlyBudget - totalExpenses;
+
+const budgetUsedPercentage =
+  monthlyBudget > 0
+    ? (totalExpenses / monthlyBudget) * 100
+    : 0;
+
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
       <header className="bg-[#500000] px-6 py-5 text-white shadow-md">
@@ -68,32 +82,50 @@ export default function Home() {
             <p className="text-sm font-medium text-gray-500">
               Monthly Budget
             </p>
-            <p className="mt-2 text-3xl font-bold">$1,200.00</p>
+            <p className="mt-2 text-3xl font-bold">
+            ${monthlyBudget.toFixed(2)}</p>
           </article>
 
           <article className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-gray-500">
               Total Expenses
             </p>
-            <p className="mt-2 text-3xl font-bold">$735.50</p>
+            <p className="mt-2 text-3xl font-bold">
+  ${totalExpenses.toFixed(2)}
+</p>
           </article>
 
           <article className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-gray-500">
               Remaining Balance
             </p>
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              $464.50
-            </p>
+            <p
+  className={`mt-2 text-3xl font-bold ${
+    remainingBalance < 0 ? "text-red-700" : "text-green-700"
+  }`}
+>
+  ${remainingBalance.toFixed(2)}
+</p>
           </article>
         </div>
 
-        <div className="mt-8 rounded-xl border-l-4 border-yellow-500 bg-yellow-50 p-5">
-          <h3 className="font-bold text-yellow-800">Budget warning</h3>
-          <p className="mt-1 text-yellow-700">
-            You have used 61% of your monthly budget.
-          </p>
-        </div>
+        {budgetUsedPercentage >= 80 && (
+  <div className="mt-8 rounded-xl border-l-4 border-yellow-500 bg-yellow-50 p-5">
+    <h3 className="font-bold text-yellow-800">
+      {budgetUsedPercentage >= 100
+        ? "Budget exceeded"
+        : "Budget warning"}
+    </h3>
+
+    <p className="mt-1 text-yellow-700">
+      {budgetUsedPercentage >= 100
+        ? `You are $${Math.abs(remainingBalance).toFixed(2)} over your monthly budget.`
+        : `You have used ${Math.round(
+            budgetUsedPercentage
+          )}% of your monthly budget.`}
+    </p>
+  </div>
+)}
 
         <section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
   <div className="flex items-center justify-between">
