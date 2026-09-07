@@ -1,8 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+
+type Expense = {
+  id: number;
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+};
+
 export default function Home() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  function handleAddExpense(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+
+    const newExpense: Expense = {
+      id: Date.now(),
+      description: String(formData.get("description")),
+      amount: Number(formData.get("amount")),
+      category: String(formData.get("category")),
+      date: String(formData.get("date")),
+    };
+
+    event.currentTarget.reset();
+    setExpenses((currentExpenses) => [
+      newExpense,
+      ...currentExpenses,
+    ]);
+    setShowExpenseForm(false);
+  }
+
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
       <header className="bg-[#500000] px-6 py-5 text-white shadow-md">
@@ -79,14 +111,130 @@ export default function Home() {
   </div>
 
   {showExpenseForm && (
-    <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <p className="font-medium">Expense form will go here.</p>
-    </div>
-  )}
+  <form
+    onSubmit={handleAddExpense}
+    className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-5"
+  >
+    <div className="grid gap-5 md:grid-cols-2">
+      <div>
+        <label
+          htmlFor="description"
+          className="mb-2 block font-medium"
+        >
+          Description
+        </label>
 
+        <input
+          id="description"
+          name="description"
+          type="text"
+          placeholder="Example: Groceries"
+          required
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="amount"
+          className="mb-2 block font-medium"
+        >
+          Amount
+        </label>
+
+        <input
+          id="amount"
+          name="amount"
+          type="number"
+          min="0.01"
+          step="0.01"
+          placeholder="0.00"
+          required
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="category"
+          className="mb-2 block font-medium"
+        >
+          Category
+        </label>
+
+        <select
+          id="category"
+          name="category"
+          required
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+        >
+          <option value="">Select a category</option>
+          <option value="Food">Food</option>
+          <option value="Transportation">Transportation</option>
+          <option value="School">School</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label
+          htmlFor="date"
+          className="mb-2 block font-medium"
+        >
+          Date
+        </label>
+
+        <input
+          id="date"
+          name="date"
+          type="date"
+          required
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+        />
+      </div>
+    </div>
+
+    <button
+      type="submit"
+      className="mt-5 cursor-pointer rounded-lg bg-[#500000] px-5 py-2 font-medium text-white hover:bg-[#700000]"
+    >
+      Save Expense
+    </button>
+  </form>
+)}
+
+  {expenses.length === 0 ? (
   <p className="mt-6 text-gray-500">
     Your recorded expenses will appear here.
   </p>
+) : (
+  <div className="mt-6 overflow-x-auto">
+    <table className="w-full text-left">
+      <thead className="border-b border-gray-200">
+        <tr>
+          <th className="px-3 py-3">Description</th>
+          <th className="px-3 py-3">Category</th>
+          <th className="px-3 py-3">Date</th>
+          <th className="px-3 py-3 text-right">Amount</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {expenses.map((expense) => (
+          <tr key={expense.id} className="border-b border-gray-100">
+            <td className="px-3 py-3">{expense.description}</td>
+            <td className="px-3 py-3">{expense.category}</td>
+            <td className="px-3 py-3">{expense.date}</td>
+            <td className="px-3 py-3 text-right font-medium">
+              ${expense.amount.toFixed(2)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
 </section>
       </section>
     </main>
