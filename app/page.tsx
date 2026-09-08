@@ -52,6 +52,14 @@ export default function Home() {
   setShowBudgetForm(false);
 }
 
+function deleteExpense(expenseId: number) {
+  setExpenses((currentExpenses) =>
+    currentExpenses.filter(
+      (expense) => expense.id !== expenseId
+    )
+  );
+}
+
 const totalExpenses = expenses.reduce(
   (total, expense) => total + expense.amount,
   0
@@ -308,6 +316,7 @@ const budgetUsedPercentage =
           <th className="px-3 py-3">Category</th>
           <th className="px-3 py-3">Date</th>
           <th className="px-3 py-3 text-right">Amount</th>
+          <th className="px-3 py-3 text-right">Actions</th>
         </tr>
       </thead>
 
@@ -320,6 +329,15 @@ const budgetUsedPercentage =
             <td className="px-3 py-3 text-right font-medium">
               ${expense.amount.toFixed(2)}
             </td>
+            <td className="px-3 py-3 text-right">
+  <button
+    type="button"
+    onClick={() => deleteExpense(expense.id)}
+    className="cursor-pointer font-medium text-red-700 hover:underline"
+  >
+    Delete
+  </button>
+</td>
           </tr>
         ))}
       </tbody>
