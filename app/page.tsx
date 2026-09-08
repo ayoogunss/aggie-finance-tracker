@@ -14,6 +14,9 @@ export default function Home() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
+  const [monthlyBudget, setMonthlyBudget] = useState(1200);
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
+
   function handleAddExpense(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -35,7 +38,19 @@ export default function Home() {
     setShowExpenseForm(false);
   }
 
-  const monthlyBudget = 1200;
+  function handleBudgetSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  const formData = new FormData(event.currentTarget);
+  const updatedBudget = Number(formData.get("budget"));
+
+  if (updatedBudget <= 0) {
+    return;
+  }
+
+  setMonthlyBudget(updatedBudget);
+  setShowBudgetForm(false);
+}
 
 const totalExpenses = expenses.reduce(
   (total, expense) => total + expense.amount,
@@ -79,12 +94,56 @@ const budgetUsedPercentage =
 
         <div className="grid gap-6 md:grid-cols-3">
           <article className="rounded-xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-gray-500">
-              Monthly Budget
-            </p>
-            <p className="mt-2 text-3xl font-bold">
-            ${monthlyBudget.toFixed(2)}</p>
-          </article>
+  <div className="flex items-start justify-between">
+    <div>
+      <p className="text-sm font-medium text-gray-500">
+        Monthly Budget
+      </p>
+
+      <p className="mt-2 text-3xl font-bold">
+        ${monthlyBudget.toFixed(2)}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={() =>
+        setShowBudgetForm((currentValue) => !currentValue)
+      }
+      className="cursor-pointer text-sm font-medium text-[#500000] hover:underline"
+    >
+      {showBudgetForm ? "Cancel" : "Edit"}
+    </button>
+  </div>
+
+  {showBudgetForm && (
+    <form onSubmit={handleBudgetSubmit} className="mt-4">
+      <label htmlFor="budget" className="mb-2 block text-sm font-medium">
+        New monthly limit
+      </label>
+
+      <div className="flex gap-2">
+        <input
+          id="budget"
+          name="budget"
+          type="number"
+          min="0.01"
+          step="0.01"
+          defaultValue={monthlyBudget}
+          required
+          className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2"
+        />
+
+        <button
+          type="submit"
+          className="cursor-pointer rounded-lg bg-[#500000] px-4 py-2 text-white hover:bg-[#700000]"
+        >
+          Save
+        </button>
+      </div>
+    </form>
+  )}
+</article>
 
           <article className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-gray-500">
