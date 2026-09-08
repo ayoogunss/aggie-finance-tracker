@@ -10,12 +10,21 @@ type Expense = {
   date: string;
 };
 
+type PlannedExpense = {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+};
+
 export default function Home() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const [monthlyBudget, setMonthlyBudget] = useState(1200);
   const [showBudgetForm, setShowBudgetForm] = useState(false);
+
+  const [plannedExpenses, setPlannedExpenses] = useState<PlannedExpense[]>([]);
 
   function handleAddExpense(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,6 +69,38 @@ function deleteExpense(expenseId: number) {
   );
 }
 
+function handleAddPlannedExpense(
+  event: FormEvent<HTMLFormElement>
+) {
+  event.preventDefault();
+
+  const formData = new FormData(event.currentTarget);
+
+  const newPlannedExpense: PlannedExpense = {
+    id: Date.now(),
+    description: String(
+      formData.get("plannedDescription")
+    ),
+    amount: Number(formData.get("plannedAmount")),
+    date: String(formData.get("plannedDate")),
+  };
+
+  event.currentTarget.reset();
+
+  setPlannedExpenses((currentExpenses) => [
+    newPlannedExpense,
+    ...currentExpenses,
+  ]);
+}
+
+function deletePlannedExpense(expenseId: number) {
+  setPlannedExpenses((currentExpenses) =>
+    currentExpenses.filter(
+      (expense) => expense.id !== expenseId
+    )
+  );
+}
+
 const totalExpenses = expenses.reduce(
   (total, expense) => total + expense.amount,
   0
@@ -71,6 +112,11 @@ const budgetUsedPercentage =
   monthlyBudget > 0
     ? (totalExpenses / monthlyBudget) * 100
     : 0;
+
+const totalPlannedSpending = plannedExpenses.reduce(
+  (total, expense) => total + expense.amount,
+  0
+);
 
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
@@ -344,6 +390,132 @@ const budgetUsedPercentage =
     </table>
   </div>
 )}
+</section>
+<section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h3 className="text-xl font-bold">Upcoming Spending</h3>
+      <p className="mt-1 text-gray-500">
+        Planned total: ${totalPlannedSpending.toFixed(2)}
+      </p>
+    </div>
+  </div>
+
+  <form
+    onSubmit={handleAddPlannedExpense}
+    className="mt-6 grid gap-4 md:grid-cols-4"
+  >
+    <div>
+      <label
+        htmlFor="plannedDescription"
+        className="mb-2 block font-medium"
+      >
+        Description
+      </label>
+
+      <input
+        id="plannedDescription"
+        name="plannedDescription"
+        type="text"
+        placeholder="Example: Textbooks"
+        required
+        className="w-full rounded-lg border border-gray-300 px-3 py-2"
+      />
+    </div>
+
+    <div>
+      <label
+        htmlFor="plannedAmount"
+        className="mb-2 block font-medium"
+      >
+        Expected amount
+      </label>
+
+      <input
+        id="plannedAmount"
+        name="plannedAmount"
+        type="number"
+        min="0.01"
+        step="0.01"
+        placeholder="0.00"
+        required
+        className="w-full rounded-lg border border-gray-300 px-3 py-2"
+      />
+    </div>
+
+    <div>
+      <label
+        htmlFor="plannedDate"
+        className="mb-2 block font-medium"
+      >
+        Expected date
+      </label>
+
+      <input
+        id="plannedDate"
+        name="plannedDate"
+        type="date"
+        required
+        className="w-full rounded-lg border border-gray-300 px-3 py-2"
+      />
+    </div>
+
+    <div className="flex items-end">
+      <button
+        type="submit"
+        className="w-full cursor-pointer rounded-lg bg-[#500000] px-4 py-2 text-white hover:bg-[#700000]"
+      >
+        Add Planned Expense
+      </button>
+    </div>
+  </form>
+
+  {plannedExpenses.length === 0 ? (
+    <p className="mt-6 text-gray-500">
+      No upcoming spending has been planned.
+    </p>
+  ) : (
+    <div className="mt-6 overflow-x-auto">
+      <table className="w-full text-left">
+        <thead className="border-b border-gray-200">
+          <tr>
+            <th className="px-3 py-3">Description</th>
+            <th className="px-3 py-3">Expected Date</th>
+            <th className="px-3 py-3 text-right">Amount</th>
+            <th className="px-3 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {plannedExpenses.map((expense) => (
+            <tr
+              key={expense.id}
+              className="border-b border-gray-100"
+            >
+              <td className="px-3 py-3">
+                {expense.description}
+              </td>
+              <td className="px-3 py-3">{expense.date}</td>
+              <td className="px-3 py-3 text-right">
+                ${expense.amount.toFixed(2)}
+              </td>
+              <td className="px-3 py-3 text-right">
+                <button
+                  type="button"
+                  onClick={() =>
+                    deletePlannedExpense(expense.id)
+                  }
+                  className="cursor-pointer font-medium text-red-700 hover:underline"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
 </section>
       </section>
     </main>
