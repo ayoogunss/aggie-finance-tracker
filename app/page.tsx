@@ -118,6 +118,9 @@ const totalPlannedSpending = plannedExpenses.reduce(
   0
 );
 
+const projectedRemaining =
+  remainingBalance - totalPlannedSpending;
+
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
       <header className="bg-[#500000] px-6 py-5 text-white shadow-md">
@@ -395,9 +398,27 @@ const totalPlannedSpending = plannedExpenses.reduce(
   <div className="flex flex-wrap items-center justify-between gap-3">
     <div>
       <h3 className="text-xl font-bold">Upcoming Spending</h3>
-      <p className="mt-1 text-gray-500">
-        Planned total: ${totalPlannedSpending.toFixed(2)}
-      </p>
+      <div className="mt-2 flex flex-wrap gap-6 text-sm">
+  <p className="text-gray-600">
+    Planned total:{" "}
+    <span className="font-bold">
+      ${totalPlannedSpending.toFixed(2)}
+    </span>
+  </p>
+
+  <p className="text-gray-600">
+    Projected remaining:{" "}
+    <span
+      className={`font-bold ${
+        projectedRemaining < 0
+          ? "text-red-700"
+          : "text-green-700"
+      }`}
+    >
+      ${projectedRemaining.toFixed(2)}
+    </span>
+  </p>
+</div>
     </div>
   </div>
 
@@ -469,6 +490,15 @@ const totalPlannedSpending = plannedExpenses.reduce(
       </button>
     </div>
   </form>
+
+  {projectedRemaining < 0 && (
+  <div className="mt-5 rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
+    <p className="font-medium text-red-700">
+      Your planned spending exceeds your remaining budget by $
+      {Math.abs(projectedRemaining).toFixed(2)}.
+    </p>
+  </div>
+)}
 
   {plannedExpenses.length === 0 ? (
     <p className="mt-6 text-gray-500">
