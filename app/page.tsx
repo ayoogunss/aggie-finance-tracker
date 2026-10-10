@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { useState, type FormEvent } from "react";
+import {useEffect, useState, type FormEvent } from "react";
 
 type Expense = {
   id: number;
@@ -21,32 +21,114 @@ type PlannedExpense = {
 export default function Home() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expenseError, setExpenseError] = useState("");
 
   const [monthlyBudget, setMonthlyBudget] = useState(1200);
   const [showBudgetForm, setShowBudgetForm] = useState(false);
 
   const [plannedExpenses, setPlannedExpenses] = useState<PlannedExpense[]>([]);
 
-  function handleAddExpense(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+  async function loadExpenses() {
+    const supabase = createClient();
 
-    const formData = new FormData(event.currentTarget);
+    const { data, error } = await supabase
+      .from("expenses")
+      .select("id, description, category, amount, expense_date")
+      .order("expense_date", { ascending: false });
 
-    const newExpense: Expense = {
-      id: Date.now(),
-      description: String(formData.get("description")),
-      amount: Number(formData.get("amount")),
-      category: String(formData.get("category")),
-      date: String(formData.get("date")),
-    };
+    if (error) {
+      setExpenseError(`Unable to load expenses: ${error.message}`);
+      return;
+    }
 
-    event.currentTarget.reset();
-    setExpenses((currentExpenses) => [
-      newExpense,
-      ...currentExpenses,
-    ]);
-    setShowExpenseForm(false);
+    const formattedExpenses: Expense[] = data.map((expense) => ({
+      id: expense.id,
+      description: expense.description,
+      category: expense.category,
+      amount: Number(expense.amount),
+      date: expense.expense_date,
+    }));
+
+    setExpenses(formattedExpenses);
   }
+
+  loadExpenses();
+}, []);
+
+  async function handleAddExpense(
+  event: FormEvent<HTMLFormElement>
+) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const formData = new FormData(form);
+
+  const description = String(formData.get("description")).trim();
+  const amount = Number(formData.get("amount"));
+  const category = String(formData.get("category"));
+  const date = String(formData.get("date"));
+
+  setExpenseError("");
+
+  if (
+    !description ||
+    !category ||
+    !date ||
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+    setExpenseError(
+      "Enter a description, category, valid date, and an amount greater than zero."
+    );
+    return;
+  }
+
+  const supabase = createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    setExpenseError("You must be signed in to add an expense.");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("expenses")
+    .insert({
+      user_id: user.id,
+      description,
+      amount,
+      category,
+      expense_date: date,
+    })
+    .select("id, description, category, amount, expense_date")
+    .single();
+
+  if (error) {
+    setExpenseError(`Unable to save expense: ${error.message}`);
+    return;
+  }
+
+  const savedExpense: Expense = {
+    id: data.id,
+    description: data.description,
+    amount: Number(data.amount),
+    category: data.category,
+    date: data.expense_date,
+  };
+
+  setExpenses((currentExpenses) => [
+    savedExpense,
+    ...currentExpenses,
+  ]);
+
+  form.reset();
+  setShowExpenseForm(false);
+}
 
   function handleBudgetSubmit(event: FormEvent<HTMLFormElement>) {
   event.preventDefault();
@@ -62,7 +144,21 @@ export default function Home() {
   setShowBudgetForm(false);
 }
 
-function deleteExpense(expenseId: number) {
+async function deleteExpense(expenseId: number) {
+  setExpenseError("");
+
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from("expenses")
+    .delete()
+    .eq("id", expenseId);
+
+  if (error) {
+    setExpenseError(`Unable to delete expense: ${error.message}`);
+    return;
+  }
+
   setExpenses((currentExpenses) =>
     currentExpenses.filter(
       (expense) => expense.id !== expenseId
@@ -283,6 +379,11 @@ const projectedRemaining =
   {showExpenseForm ? "Cancel" : "Add Expense"}
 </button>
   </div>
+  {expenseError && (
+  <div className="mt-4 rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
+    <p className="text-red-700">{expenseError}</p>
+  </div>
+)}
 
   {showExpenseForm && (
   <form
