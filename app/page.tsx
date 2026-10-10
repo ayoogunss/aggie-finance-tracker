@@ -1,5 +1,6 @@
 "use client";
 
+import { createClient } from "@/utils/supabase/client";
 import { useState, type FormEvent } from "react";
 
 type Expense = {
@@ -67,6 +68,17 @@ function deleteExpense(expenseId: number) {
       (expense) => expense.id !== expenseId
     )
   );
+}
+async function handleSignOut() {
+  const supabase = createClient();
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    alert(`Unable to sign out: ${error.message}`);
+    return;
+  }
+
+  window.location.href = "/login";
 }
 
 function handleAddPlannedExpense(
@@ -138,6 +150,19 @@ const projectedRemaining =
               Budgets
             </a>
           </nav>
+           <nav className="flex items-center gap-8">
+  <a href="/">Dashboard</a>
+  <a href="#expenses">Expenses</a>
+  <a href="#budgets">Budgets</a>
+
+  <button
+    type="button"
+    onClick={handleSignOut}
+    className="cursor-pointer rounded-lg border border-white px-3 py-1.5 text-white hover:bg-white hover:text-[#500000]"
+  >
+    Sign Out
+  </button>
+</nav>
         </div>
       </header>
 
@@ -171,6 +196,7 @@ const projectedRemaining =
     >
       {showBudgetForm ? "Cancel" : "Edit"}
     </button>
+
   </div>
 
   {showBudgetForm && (
