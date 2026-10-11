@@ -18,12 +18,21 @@ type PlannedExpense = {
   date: string;
 };
 
+function getCurrentBudgetMonth() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}-01`;
+}
+
 export default function Home() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expenseError, setExpenseError] = useState("");
 
   const [monthlyBudget, setMonthlyBudget] = useState(1200);
+  const [budgetError, setBudgetError] = useState("");
   const [showBudgetForm, setShowBudgetForm] = useState(false);
 
   const [plannedExpenses, setPlannedExpenses] = useState<PlannedExpense[]>([]);
@@ -54,6 +63,30 @@ export default function Home() {
   }
 
   loadExpenses();
+}, []);
+
+useEffect(() => {
+  async function loadBudget() {
+    const supabase = createClient();
+    const budgetMonth = getCurrentBudgetMonth();
+
+    const { data, error } = await supabase
+      .from("budgets")
+      .select("amount")
+      .eq("budget_month", budgetMonth)
+      .maybeSingle();
+
+    if (error) {
+      setBudgetError(`Unable to load budget: ${error.message}`);
+      return;
+    }
+
+    if (data) {
+      setMonthlyBudget(Number(data.amount));
+    }
+  }
+
+  loadBudget();
 }, []);
 
   async function handleAddExpense(
@@ -130,17 +163,55 @@ export default function Home() {
   setShowExpenseForm(false);
 }
 
-  function handleBudgetSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleBudgetSubmit(
+  event: FormEvent<HTMLFormElement>
+) {
   event.preventDefault();
 
   const formData = new FormData(event.currentTarget);
   const updatedBudget = Number(formData.get("budget"));
 
-  if (updatedBudget <= 0) {
+  setBudgetError("");
+
+  if (!Number.isFinite(updatedBudget) || updatedBudget <= 0) {
+    setBudgetError("Enter a monthly budget greater than zero.");
     return;
   }
 
-  setMonthlyBudget(updatedBudget);
+  const supabase = createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    setBudgetError("You must be signed in to update your budget.");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("budgets")
+    .upsert(
+      {
+        user_id: user.id,
+        budget_month: getCurrentBudgetMonth(),
+        amount: updatedBudget,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "user_id,budget_month",
+      }
+    )
+    .select("amount")
+    .single();
+
+  if (error) {
+    setBudgetError(`Unable to save budget: ${error.message}`);
+    return;
+  }
+
+  setMonthlyBudget(Number(data.amount));
   setShowBudgetForm(false);
 }
 
@@ -281,6 +352,11 @@ const projectedRemaining =
       <p className="mt-2 text-3xl font-bold">
         ${monthlyBudget.toFixed(2)}
       </p>
+      {budgetError && (
+  <p className="mt-2 text-sm text-red-700">
+    {budgetError}
+  </p>
+)}
     </div>
 
     <button
