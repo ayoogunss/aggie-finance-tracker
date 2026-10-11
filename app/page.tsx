@@ -403,6 +403,28 @@ const categoryBreakdown = Object.entries(
   return secondAmount - firstAmount;
 });
 
+const spendingByMonth = expenses.reduce<
+  Record<string, number>
+>((monthlyTotals, expense) => {
+  const month = expense.date.slice(0, 7);
+  const currentTotal = monthlyTotals[month] ?? 0;
+
+  monthlyTotals[month] = currentTotal + expense.amount;
+
+  return monthlyTotals;
+}, {});
+
+const monthlyTrend = Object.entries(spendingByMonth)
+  .sort(([firstMonth], [secondMonth]) =>
+    firstMonth.localeCompare(secondMonth)
+  )
+  .slice(-6);
+
+const highestMonthlySpending = Math.max(
+  ...monthlyTrend.map(([, amount]) => amount),
+  0
+);
+
 const remainingBalance = monthlyBudget - totalExpenses;
 
 const budgetUsedPercentage =
@@ -610,6 +632,60 @@ const projectedRemaining =
     </div>
   )}
 </section>
+
+<section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+  <div>
+    <h3 className="text-xl font-bold">
+      Monthly Spending Trend
+    </h3>
+
+    <p className="mt-1 text-gray-500">
+      Compare your total expenses across the latest six months.
+    </p>
+  </div>
+
+  {monthlyTrend.length === 0 ? (
+    <p className="mt-6 text-gray-500">
+      Add expenses to view your monthly spending trend.
+    </p>
+  ) : (
+    <div className="mt-6 space-y-5">
+      {monthlyTrend.map(([month, amount]) => {
+        const barWidth =
+          highestMonthlySpending > 0
+            ? (amount / highestMonthlySpending) * 100
+            : 0;
+
+        const monthLabel = new Date(
+          `${month}-01T00:00:00`
+        ).toLocaleDateString("en-US", {
+          month: "short",
+          year: "numeric",
+        });
+
+        return (
+          <div key={month}>
+            <div className="mb-2 flex items-center justify-between gap-4">
+              <p className="font-medium">{monthLabel}</p>
+
+              <p className="font-bold">
+                ${amount.toFixed(2)}
+              </p>
+            </div>
+
+            <div className="h-3 overflow-hidden rounded-full bg-gray-200">
+              <div
+                className="h-full rounded-full bg-blue-600"
+                style={{ width: `${barWidth}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</section>
+
         <section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
   <div className="flex items-center justify-between">
     <h3 className="text-xl font-bold">Recent Expenses</h3>
