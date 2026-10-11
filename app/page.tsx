@@ -386,6 +386,23 @@ const totalExpenses = expenses.reduce(
   0
 );
 
+const spendingByCategory = expenses.reduce<
+  Record<string, number>
+>((categoryTotals, expense) => {
+  const currentTotal = categoryTotals[expense.category] ?? 0;
+
+  categoryTotals[expense.category] =
+    currentTotal + expense.amount;
+
+  return categoryTotals;
+}, {});
+
+const categoryBreakdown = Object.entries(
+  spendingByCategory
+).sort(([, firstAmount], [, secondAmount]) => {
+  return secondAmount - firstAmount;
+});
+
 const remainingBalance = monthlyBudget - totalExpenses;
 
 const budgetUsedPercentage =
@@ -542,6 +559,57 @@ const projectedRemaining =
   </div>
 )}
 
+        <section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+  <div>
+    <h3 className="text-xl font-bold">
+      Spending by Category
+    </h3>
+
+    <p className="mt-1 text-gray-500">
+      See where your recorded expenses are going.
+    </p>
+  </div>
+
+  {categoryBreakdown.length === 0 ? (
+    <p className="mt-6 text-gray-500">
+      Add an expense to view your category breakdown.
+    </p>
+  ) : (
+    <div className="mt-6 space-y-5">
+      {categoryBreakdown.map(([category, amount]) => {
+        const percentage =
+          totalExpenses > 0
+            ? (amount / totalExpenses) * 100
+            : 0;
+
+        return (
+          <div key={category}>
+            <div className="mb-2 flex items-center justify-between gap-4">
+              <p className="font-medium">{category}</p>
+
+              <div className="text-right">
+                <p className="font-bold">
+                  ${amount.toFixed(2)}
+                </p>
+
+                <p className="text-sm text-gray-500">
+                  {percentage.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+
+            <div className="h-3 overflow-hidden rounded-full bg-gray-200">
+              <div
+                className="h-full rounded-full bg-[#500000]"
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</section>
         <section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
   <div className="flex items-center justify-between">
     <h3 className="text-xl font-bold">Recent Expenses</h3>
@@ -794,7 +862,7 @@ const projectedRemaining =
       </button>
     </div>
   </form>
-  
+
   {plannedExpenseError && (
   <div className="mt-4 rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
     <p className="text-red-700">
