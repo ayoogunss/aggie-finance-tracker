@@ -37,6 +37,8 @@ export default function Home() {
 
   const [plannedExpenses, setPlannedExpenses] = useState<PlannedExpense[]>([]);
 
+  const [plannedExpenseError, setPlannedExpenseError] =
+  useState("");
   useEffect(() => {
   async function loadExpenses() {
     const supabase = createClient();
@@ -87,6 +89,37 @@ useEffect(() => {
   }
 
   loadBudget();
+}, []);
+
+useEffect(() => {
+  async function loadPlannedExpenses() {
+    const supabase = createClient();
+
+    const { data, error } = await supabase
+      .from("planned_expenses")
+      .select("id, description, amount, planned_date")
+      .order("planned_date", { ascending: true });
+
+    if (error) {
+      setPlannedExpenseError(
+        `Unable to load planned expenses: ${error.message}`
+      );
+      return;
+    }
+
+    const formattedExpenses: PlannedExpense[] = data.map(
+      (expense) => ({
+        id: expense.id,
+        description: expense.description,
+        amount: Number(expense.amount),
+        date: expense.planned_date,
+      })
+    );
+
+    setPlannedExpenses(formattedExpenses);
+  }
+
+  loadPlannedExpenses();
 }, []);
 
   async function handleAddExpense(
@@ -248,31 +281,99 @@ async function handleSignOut() {
   window.location.href = "/login";
 }
 
-function handleAddPlannedExpense(
+async function handleAddPlannedExpense(
   event: FormEvent<HTMLFormElement>
 ) {
   event.preventDefault();
 
-  const formData = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const formData = new FormData(form);
 
-  const newPlannedExpense: PlannedExpense = {
-    id: Date.now(),
-    description: String(
-      formData.get("plannedDescription")
-    ),
-    amount: Number(formData.get("plannedAmount")),
-    date: String(formData.get("plannedDate")),
+  const description = String(
+    formData.get("plannedDescription")
+  ).trim();
+
+  const amount = Number(formData.get("plannedAmount"));
+  const date = String(formData.get("plannedDate"));
+
+  setPlannedExpenseError("");
+
+  if (
+    !description ||
+    !date ||
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+    setPlannedExpenseError(
+      "Enter a description, valid date, and an amount greater than zero."
+    );
+    return;
+  }
+
+  const supabase = createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    setPlannedExpenseError(
+      "You must be signed in to add planned spending."
+    );
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("planned_expenses")
+    .insert({
+      user_id: user.id,
+      description,
+      amount,
+      planned_date: date,
+    })
+    .select("id, description, amount, planned_date")
+    .single();
+
+  if (error) {
+    setPlannedExpenseError(
+      `Unable to save planned expense: ${error.message}`
+    );
+    return;
+  }
+
+  const savedPlannedExpense: PlannedExpense = {
+    id: data.id,
+    description: data.description,
+    amount: Number(data.amount),
+    date: data.planned_date,
   };
 
-  event.currentTarget.reset();
-
   setPlannedExpenses((currentExpenses) => [
-    newPlannedExpense,
+    savedPlannedExpense,
     ...currentExpenses,
   ]);
+
+  form.reset();
 }
 
-function deletePlannedExpense(expenseId: number) {
+async function deletePlannedExpense(expenseId: number) {
+  setPlannedExpenseError("");
+
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from("planned_expenses")
+    .delete()
+    .eq("id", expenseId);
+
+  if (error) {
+    setPlannedExpenseError(
+      `Unable to delete planned expense: ${error.message}`
+    );
+    return;
+  }
+
   setPlannedExpenses((currentExpenses) =>
     currentExpenses.filter(
       (expense) => expense.id !== expenseId
@@ -693,6 +794,14 @@ const projectedRemaining =
       </button>
     </div>
   </form>
+  
+  {plannedExpenseError && (
+  <div className="mt-4 rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
+    <p className="text-red-700">
+      {plannedExpenseError}
+    </p>
+  </div>
+)}
 
   {projectedRemaining < 0 && (
   <div className="mt-5 rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
