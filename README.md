@@ -6,7 +6,7 @@ The application provides secure user accounts, private financial records, persis
 
 ## Live Application
 
-[Open Aggie Finance Tracker](https://YOUR_VERCEL_URL)
+[Open Aggie Finance Tracker](https://aggie-finance-tracker2.vercel.app)
 
 ## Features
 
