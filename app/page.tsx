@@ -30,6 +30,8 @@ export default function Home() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expenseError, setExpenseError] = useState("");
+  const [editingExpense, setEditingExpense] =
+    useState<Expense | null>(null);
 
   const [monthlyBudget, setMonthlyBudget] = useState(1200);
   const [budgetError, setBudgetError] = useState("");
@@ -269,6 +271,85 @@ async function deleteExpense(expenseId: number) {
     )
   );
 }
+
+function startEditingExpense(expense: Expense) {
+  setExpenseError("");
+  setEditingExpense({ ...expense });
+}
+
+function cancelEditingExpense() {
+  setExpenseError("");
+  setEditingExpense(null);
+}
+
+async function saveEditedExpense() {
+  if (!editingExpense) {
+    return;
+  }
+
+  const description = editingExpense.description.trim();
+  const category = editingExpense.category.trim();
+  const amount = Number(editingExpense.amount);
+  const date = editingExpense.date;
+
+  setExpenseError("");
+
+  if (
+    !description ||
+    !category ||
+    !date ||
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+    setExpenseError(
+      "Enter a description, category, valid date, and an amount greater than zero."
+    );
+    return;
+  }
+
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("expenses")
+    .update({
+      description,
+      category,
+      amount,
+      expense_date: date,
+    })
+    .eq("id", editingExpense.id)
+    .select("id, description, category, amount, expense_date")
+    .single();
+
+  if (error) {
+    setExpenseError(`Unable to update expense: ${error.message}`);
+    return;
+  }
+
+  const updatedExpense: Expense = {
+    id: data.id,
+    description: data.description,
+    category: data.category,
+    amount: Number(data.amount),
+    date: data.expense_date,
+  };
+
+  setExpenses((currentExpenses) =>
+    currentExpenses
+      .map((expense) =>
+        expense.id === updatedExpense.id
+          ? updatedExpense
+          : expense
+      )
+      .sort((firstExpense, secondExpense) =>
+        secondExpense.date.localeCompare(firstExpense.date)
+      )
+  );
+
+  setEditingExpense(null);
+}
+
+
 async function handleSignOut() {
   const supabase = createClient();
   const { error } = await supabase.auth.signOut();
@@ -818,25 +899,141 @@ const projectedRemaining =
       </thead>
 
       <tbody>
-        {expenses.map((expense) => (
-          <tr key={expense.id} className="border-b border-gray-100">
-            <td className="px-3 py-3">{expense.description}</td>
-            <td className="px-3 py-3">{expense.category}</td>
-            <td className="px-3 py-3">{expense.date}</td>
-            <td className="px-3 py-3 text-right font-medium">
-              ${expense.amount.toFixed(2)}
-            </td>
-            <td className="px-3 py-3 text-right">
-  <button
-    type="button"
-    onClick={() => deleteExpense(expense.id)}
-    className="cursor-pointer font-medium text-red-700 hover:underline"
-  >
-    Delete
-  </button>
-</td>
-          </tr>
-        ))}
+        {expenses.map((expense) =>
+  editingExpense?.id === expense.id ? (
+    <tr
+      key={expense.id}
+      className="border-b border-gray-100 bg-yellow-50"
+    >
+      <td className="px-3 py-3">
+        <input
+          type="text"
+          value={editingExpense.description}
+          onChange={(event) =>
+            setEditingExpense((currentExpense) =>
+              currentExpense
+                ? {
+                    ...currentExpense,
+                    description: event.target.value,
+                  }
+                : currentExpense
+            )
+          }
+          className="w-full rounded-lg border border-gray-300 px-2 py-1"
+        />
+      </td>
+
+      <td className="px-3 py-3">
+        <input
+          type="text"
+          value={editingExpense.category}
+          onChange={(event) =>
+            setEditingExpense((currentExpense) =>
+              currentExpense
+                ? {
+                    ...currentExpense,
+                    category: event.target.value,
+                  }
+                : currentExpense
+            )
+          }
+          className="w-full rounded-lg border border-gray-300 px-2 py-1"
+        />
+      </td>
+
+      <td className="px-3 py-3">
+        <input
+          type="date"
+          value={editingExpense.date}
+          onChange={(event) =>
+            setEditingExpense((currentExpense) =>
+              currentExpense
+                ? {
+                    ...currentExpense,
+                    date: event.target.value,
+                  }
+                : currentExpense
+            )
+          }
+          className="w-full rounded-lg border border-gray-300 px-2 py-1"
+        />
+      </td>
+
+      <td className="px-3 py-3">
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          value={editingExpense.amount}
+          onChange={(event) =>
+            setEditingExpense((currentExpense) =>
+              currentExpense
+                ? {
+                    ...currentExpense,
+                    amount: Number(event.target.value),
+                  }
+                : currentExpense
+            )
+          }
+          className="w-full rounded-lg border border-gray-300 px-2 py-1 text-right"
+        />
+      </td>
+
+      <td className="px-3 py-3 text-right">
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={saveEditedExpense}
+            className="cursor-pointer font-medium text-green-700 hover:underline"
+          >
+            Save
+          </button>
+
+          <button
+            type="button"
+            onClick={cancelEditingExpense}
+            className="cursor-pointer font-medium text-gray-600 hover:underline"
+          >
+            Cancel
+          </button>
+        </div>
+      </td>
+    </tr>
+  ) : (
+    <tr
+      key={expense.id}
+      className="border-b border-gray-100"
+    >
+      <td className="px-3 py-3">{expense.description}</td>
+      <td className="px-3 py-3">{expense.category}</td>
+      <td className="px-3 py-3">{expense.date}</td>
+
+      <td className="px-3 py-3 text-right font-medium">
+        ${expense.amount.toFixed(2)}
+      </td>
+
+      <td className="px-3 py-3 text-right">
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => startEditingExpense(expense)}
+            className="cursor-pointer font-medium text-blue-700 hover:underline"
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            onClick={() => deleteExpense(expense.id)}
+            className="cursor-pointer font-medium text-red-700 hover:underline"
+          >
+            Delete
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
+)}
       </tbody>
     </table>
   </div>
