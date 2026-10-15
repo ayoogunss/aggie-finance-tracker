@@ -2,8 +2,10 @@
 
 import { FormEvent, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,8 +38,8 @@ export default function LoginPage() {
       if (error) {
         setMessage(error.message);
       } else {
-        window.location.href = "/";
-      }
+      router.replace("/");
+      router.refresh();      }
     }
 
     setLoading(false);

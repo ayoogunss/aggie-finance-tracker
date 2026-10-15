@@ -2,6 +2,8 @@
 
 import { createClient } from "@/utils/supabase/client";
 import {useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Expense = {
   id: number;
@@ -27,13 +29,20 @@ function getCurrentBudgetMonth() {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expenseError, setExpenseError] = useState("");
+  const [isLoadingExpenses, setIsLoadingExpenses] =
+    useState(true);
+
   const [editingExpense, setEditingExpense] =
     useState<Expense | null>(null);
 
   const [monthlyBudget, setMonthlyBudget] = useState(1200);
+  const [isLoadingBudget, setIsLoadingBudget] =
+  useState(true);
+
   const [budgetError, setBudgetError] = useState("");
   const [showBudgetForm, setShowBudgetForm] = useState(false);
 
@@ -41,6 +50,11 @@ export default function Home() {
 
   const [plannedExpenseError, setPlannedExpenseError] =
   useState("");
+  const [
+  isLoadingPlannedExpenses,
+  setIsLoadingPlannedExpenses,
+] = useState(true);
+
   useEffect(() => {
   async function loadExpenses() {
     const supabase = createClient();
@@ -52,6 +66,11 @@ export default function Home() {
 
     if (error) {
       setExpenseError(`Unable to load expenses: ${error.message}`);
+      if (error) {
+  setExpenseError(`Unable to load expenses: ${error.message}`);
+  setIsLoadingExpenses(false);
+  return;
+}
       return;
     }
 
@@ -64,6 +83,7 @@ export default function Home() {
     }));
 
     setExpenses(formattedExpenses);
+    setIsLoadingExpenses(false);
   }
 
   loadExpenses();
@@ -82,12 +102,15 @@ useEffect(() => {
 
     if (error) {
       setBudgetError(`Unable to load budget: ${error.message}`);
+      setIsLoadingBudget(false);
       return;
     }
 
     if (data) {
       setMonthlyBudget(Number(data.amount));
     }
+
+    setIsLoadingBudget(false);
   }
 
   loadBudget();
@@ -106,6 +129,13 @@ useEffect(() => {
       setPlannedExpenseError(
         `Unable to load planned expenses: ${error.message}`
       );
+      if (error) {
+  setPlannedExpenseError(
+    `Unable to load planned expenses: ${error.message}`
+  );
+  setIsLoadingPlannedExpenses(false);
+  return;
+}
       return;
     }
 
@@ -119,6 +149,7 @@ useEffect(() => {
     );
 
     setPlannedExpenses(formattedExpenses);
+    setIsLoadingPlannedExpenses(false);
   }
 
   loadPlannedExpenses();
@@ -359,7 +390,8 @@ async function handleSignOut() {
     return;
   }
 
-  window.location.href = "/login";
+  router.replace("/login");
+  router.refresh();
 }
 
 async function handleAddPlannedExpense(
@@ -539,7 +571,7 @@ const projectedRemaining =
             </a>
           </nav>
            <nav className="flex items-center gap-8">
-  <a href="/">Dashboard</a>
+  <Link href="/">Dashboard</Link>
   <a href="#expenses">Expenses</a>
   <a href="#budgets">Budgets</a>
 
@@ -570,9 +602,15 @@ const projectedRemaining =
         Monthly Budget
       </p>
 
-      <p className="mt-2 text-3xl font-bold">
-        ${monthlyBudget.toFixed(2)}
-      </p>
+      {isLoadingBudget ? (
+  <p className="mt-2 animate-pulse text-gray-500">
+    Loading budget...
+  </p>
+) : (
+  <p className="mt-2 text-3xl font-bold">
+    ${monthlyBudget.toFixed(2)}
+  </p>
+)}
       {budgetError && (
   <p className="mt-2 text-sm text-red-700">
     {budgetError}
@@ -881,7 +919,13 @@ const projectedRemaining =
   </form>
 )}
 
-  {expenses.length === 0 ? (
+  {isLoadingExpenses ? (
+  <div className="mt-6 rounded-lg bg-gray-50 p-4">
+    <p className="animate-pulse text-gray-500">
+      Loading expenses...
+    </p>
+  </div>
+) : expenses.length === 0 ? (
   <p className="mt-6 text-gray-500">
     Your recorded expenses will appear here.
   </p>
@@ -1153,52 +1197,63 @@ const projectedRemaining =
   </div>
 )}
 
-  {plannedExpenses.length === 0 ? (
-    <p className="mt-6 text-gray-500">
-      No upcoming spending has been planned.
+  {isLoadingPlannedExpenses ? (
+  <div className="mt-6 rounded-lg bg-gray-50 p-4">
+    <p className="animate-pulse text-gray-500">
+      Loading upcoming spending...
     </p>
-  ) : (
-    <div className="mt-6 overflow-x-auto">
-      <table className="w-full text-left">
-        <thead className="border-b border-gray-200">
-          <tr>
-            <th className="px-3 py-3">Description</th>
-            <th className="px-3 py-3">Expected Date</th>
-            <th className="px-3 py-3 text-right">Amount</th>
-            <th className="px-3 py-3 text-right">Actions</th>
-          </tr>
-        </thead>
+  </div>
+) : plannedExpenses.length === 0 ? (
+  <p className="mt-6 text-gray-500">
+    No upcoming spending has been planned.
+  </p>
+) : (
+  <div className="mt-6 overflow-x-auto">
+    <table className="w-full text-left">
+      <thead className="border-b border-gray-200">
+        <tr>
+          <th className="px-3 py-3">Description</th>
+          <th className="px-3 py-3">Expected Date</th>
+          <th className="px-3 py-3 text-right">Amount</th>
+          <th className="px-3 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
 
-        <tbody>
-          {plannedExpenses.map((expense) => (
-            <tr
-              key={expense.id}
-              className="border-b border-gray-100"
-            >
-              <td className="px-3 py-3">
-                {expense.description}
-              </td>
-              <td className="px-3 py-3">{expense.date}</td>
-              <td className="px-3 py-3 text-right">
-                ${expense.amount.toFixed(2)}
-              </td>
-              <td className="px-3 py-3 text-right">
-                <button
-                  type="button"
-                  onClick={() =>
-                    deletePlannedExpense(expense.id)
-                  }
-                  className="cursor-pointer font-medium text-red-700 hover:underline"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )}
+      <tbody>
+        {plannedExpenses.map((expense) => (
+          <tr
+            key={expense.id}
+            className="border-b border-gray-100"
+          >
+            <td className="px-3 py-3">
+              {expense.description}
+            </td>
+
+            <td className="px-3 py-3">
+              {expense.date}
+            </td>
+
+            <td className="px-3 py-3 text-right">
+              ${expense.amount.toFixed(2)}
+            </td>
+
+            <td className="px-3 py-3 text-right">
+              <button
+                type="button"
+                onClick={() =>
+                  deletePlannedExpense(expense.id)
+                }
+                className="cursor-pointer font-medium text-red-700 hover:underline"
+              >
+                Delete
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
 </section>
       </section>
     </main>
